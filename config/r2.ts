@@ -1,4 +1,5 @@
 import { S3Client } from "@aws-sdk/client-s3";
+import { env } from "./env.js";
 
 let _client: S3Client | null = null
 
@@ -6,10 +7,10 @@ const getClient = (): S3Client => {
     if (!_client) {
         _client = new S3Client({
             region: 'auto',
-            endpoint: `https://${process.env.R2_ACCOUNT_ID}.r2.cloudflarestorage.com`,
+            endpoint: `https://${env.r2AccountID}.r2.cloudflarestorage.com`,
             credentials: {
-                accessKeyId: process.env.R2_ACCESS_KEY_ID as string,
-                secretAccessKey: process.env.R2_SECRET_ACCESS_KEY as string,
+                accessKeyId: env.r2AccessKeyId as string,
+                secretAccessKey: env.r2SecretAccessKey as string,
             }
         })
     }
@@ -18,6 +19,6 @@ const getClient = (): S3Client => {
 
 export const r2Config = {
     get client() { return getClient() },
-    get bucketName() { return process.env.R2_BUCKET_NAME as string },
-    get publicUrl() { return process.env.R2_PUBLIC_URL as string },
+    get bucketName() { return env.r2BucketName },
+    get publicUrl() { return env.r2PublicUrl },
 }
