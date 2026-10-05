@@ -2,6 +2,7 @@ import type {Request,Response,NextFunction} from "express"
 import jwt from "jsonwebtoken"
 import type { IUser } from "../models/User.js"
 import User from "../models/User.js"
+import { env } from "../config/env.js"
 
 declare global {
   namespace Express {
@@ -23,7 +24,7 @@ export const protect = async (req: Request, res: Response, next: NextFunction) :
         return 
       }
 
-      const decoded = jwt.verify(token, process.env.JWT_SECRET || '' ) as {id : string};
+      const decoded = jwt.verify(token, env.jwtSecret || '' ) as {id : string};
       const user = await User.findById(decoded.id).select('-password')
       if(!user){
         res.status(404).json({message: 'User not found'})

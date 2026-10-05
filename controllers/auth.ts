@@ -1,11 +1,10 @@
 import type { Request, Response, NextFunction } from "express"
 import User from "../models/User.js"
 import jwt from "jsonwebtoken"
-
-
+import { env } from "../config/env.js"
 
 const generateToken = (id: string) => {
-    return jwt.sign({ id }, process.env.JWT_SECRET as string, { expiresIn: "7d" })
+    return jwt.sign({ id }, env.jwtSecret as string, { expiresIn: "7d" })
 }
 
 export const registerUser = async (req: Request, res: Response) : Promise<void> => {
