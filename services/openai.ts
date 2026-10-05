@@ -1,5 +1,6 @@
 import { z } from "zod"
 import { OpenAI } from 'openai'
+import { env } from "../config/env.js"
 
 const foodAnalysisSchema = z.object({
     foodName: z.string().describe('name of the food'),
@@ -13,7 +14,7 @@ const foodAnalysisSchema = z.object({
 type FoodAnalysis = z.infer<typeof foodAnalysisSchema>
 
 const openai = new OpenAI({
-    apiKey: process.env.OPENROUTER_API_KEY,
+    apiKey: env.openRouterApiKey,
     baseURL: 'https://openrouter.ai/api/v1',
     defaultHeaders: {
         'HTTP-Referer': 'https://calorie-tracker.app',

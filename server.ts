@@ -6,6 +6,7 @@ import connectDB from "./config/db.js";
 import authRoutes from "./routes/auth.js"
 import foodRoutes from "./routes/food.js"
 import reportRoutes from "./routes/reports.js"
+import { env } from "./config/env.js";
 
 
 const app = express();
@@ -13,7 +14,7 @@ const app = express();
 connectDB();
 
 
-const PORT = process.env.PORT || 9997;
+const PORT = env.port || 9997;
 
 app.use(cors());
 app.use(express.json());
