@@ -31,6 +31,16 @@ app.use('/api/food',foodRoutes)
 app.use('/api/reports',reportRoutes)
 
 
+app.use((req: Request, res: Response) => {
+  res.status(404).json({ message: "Not Found" });
+});
+
+app.use((err: Error, req: Request, res: Response, next: NextFunction) => {
+    console.error("ERROR:", err);
+    res.status(500).json({ message: "Internal server error", error: err.message });
+});
+
+
 app.listen(PORT, () => {
   console.log(`Server running on port ${PORT}`);
 });
