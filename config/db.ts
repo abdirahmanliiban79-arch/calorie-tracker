@@ -8,7 +8,7 @@ const connectDB = async (): Promise<void> => {
         if (!mongoURI) {
             throw new Error("Please provide MongoDB URI in the .env file");
         }
-        await mongoose.connect(mongoURI);
+        await mongoose.connect(mongoURI, { dbName: "calorie-tracker" });
         console.log("MongoDB connected successfully✅");
     } catch (error) {
         console.error("Error connecting to MongoDB:", error);

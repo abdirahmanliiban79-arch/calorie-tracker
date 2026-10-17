@@ -27,9 +27,13 @@ app.get("/", (req: Request, res: Response) => {
   });
 });
 
-app.use('/api/auth',authRoutes)
-app.use('/api/food',foodRoutes)
-app.use('/api/reports',reportRoutes)
+app.use('/api/auth', authRoutes);
+app.use('/api/food', foodRoutes);
+app.use('/api/reports', reportRoutes);
+
+app.use('/auth', authRoutes);
+app.use('/food', foodRoutes);
+app.use('/reports', reportRoutes);
 
 
 app.use((req: Request, res: Response) => {
