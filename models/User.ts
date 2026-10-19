@@ -6,7 +6,7 @@ export interface IUser extends Document {
     name: string,
     email: string,
     password: string,
-    dailyColorieGoal: number,
+    dailyCalorieGoal: number,
     onboardingCompleted: boolean,
     createdAt: Date,
     comparePassword(candidatePassword: string): Promise<boolean>
@@ -17,7 +17,7 @@ const userSchema = new Schema<IUser>({
     name: { type: String, trim: true },
     email: { type: String, required: true, trim: true, unique: true, lowercase: true, match: [/^[^\s@]+@[^\s@]+\.[^\s@]+$/, "Please provide a valid email address"] },
     password: { type: String, required: true, minLength: 8 },
-    dailyColorieGoal: { type: Number, default: 2000 },
+    dailyCalorieGoal: { type: Number, default: 2000 },
     onboardingCompleted: { type: Boolean, default: false },
     createdAt: { type: Date, default: Date.now }
 })

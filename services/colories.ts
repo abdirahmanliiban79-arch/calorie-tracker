@@ -170,7 +170,6 @@ export const getDailySummary = async (userId: string | Types.ObjectId, date: Dat
                     $gte: startDate,
                     $lte: endDate,
                 },
-                status: "consumed"
             }
         },
         {
@@ -777,3 +776,62 @@ export const getMonthlySummary = async (
       dailyData,
     };
   };
+
+export const getUserFoodEntries = async (
+    userId: string | Types.ObjectId,
+    date?: Date,
+    limit: number = 50
+) => {
+    const userIdObjectId = typeof userId === "string" ? new Types.ObjectId(userId) : userId
+
+    let timestampRange: { $gte: Date; $lte: Date } | undefined
+    if (date) {
+        const startDate = new Date(date)
+        startDate.setHours(0, 0, 0, 0)
+
+        const endDate = new Date(date)
+        endDate.setHours(23, 59, 59, 999)
+
+        timestampRange = { $gte: startDate, $lte: endDate }
+    }
+
+    const entries = await FoodEntry.find({
+        userId: userIdObjectId,
+        ...(timestampRange ? { timestamp: timestampRange } : {}),
+    })
+        .sort({ timestamp: -1 })
+        .limit(limit)
+
+    const [totalsResult] = await FoodEntry.aggregate<{
+        totalCalories?: number;
+        totalProtein?: number;
+        totalCarbs?: number;
+        totalFat?: number;
+    }>([
+        {
+            $match: {
+                userId: userIdObjectId,
+                ...(timestampRange ? { timestamp: timestampRange } : {}),
+            },
+        },
+        {
+            $group: {
+                _id: null,
+                totalCalories: { $sum: "$calories" },
+                totalProtein: { $sum: "$protein" },
+                totalCarbs: { $sum: "$carbs" },
+                totalFat: { $sum: "$fat" },
+            },
+        },
+    ])
+
+    return {
+        entries,
+        totals: {
+            calories: totalsResult?.totalCalories || 0,
+            protein: totalsResult?.totalProtein || 0,
+            carbs: totalsResult?.totalCarbs || 0,
+            fat: totalsResult?.totalFat || 0,
+        },
+    }
+}

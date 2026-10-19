@@ -27,15 +27,15 @@ export const getDailyReport = async (req: Request, res: Response): Promise<void>
             return;
         }
 
-        const remainingCalories = user.dailyColorieGoal - summary.totalCalories;
-        const percentageGoal = user.dailyColorieGoal > 0
-            ? Math.round((summary.totalCalories / user.dailyColorieGoal) * 100)
+        const remainingCalories = user.dailyCalorieGoal - summary.totalCalories;
+        const percentageGoal = user.dailyCalorieGoal > 0
+            ? Math.round((summary.totalCalories / user.dailyCalorieGoal) * 100)
             : 0;
 
         res.json({
             success: true,
             date: targetDate.toISOString().split('T')[0],
-            dailyCalorieGoal: user.dailyColorieGoal,
+            dailyCalorieGoal: user.dailyCalorieGoal,
             totalCalories: summary.totalCalories,
             totalProtein: summary.totalProtein,
             totalCarbs: summary.totalCarbs,
@@ -107,7 +107,7 @@ export const getWeeklyReport = async (req: Request, res: Response): Promise<void
                 count: 0
             };
 
-            const goal = user.dailyColorieGoal || 2000;
+            const goal = user.dailyCalorieGoal || 2000;
             const percentComplete = goal > 0
                 ? Math.round((dayData.calories / goal) * 100)
                 : 0;
@@ -137,7 +137,7 @@ export const getWeeklyReport = async (req: Request, res: Response): Promise<void
             totalEntries: summary.totalEntries,
             avgCalories: summary.avgCalories,
             macros: summary.macros,
-            goal: user.dailyColorieGoal,
+            goal: user.dailyCalorieGoal,
         });
     } catch (error) {
         console.error("Weekly report error:", error);
@@ -199,7 +199,7 @@ export const getMonthlyReport = async (req: Request, res: Response): Promise<voi
             const formattedDay = String(day).padStart(2, '0');
             const dateStr = `${yearQuery}-${formattedMonth}-${formattedDay}`;
 
-            const goal = user.dailyColorieGoal || 2000;
+            const goal = user.dailyCalorieGoal || 2000;
             const percentComplete = goal > 0
                 ? Math.round((dayData.calories / goal) * 100)
                 : 0;
@@ -233,7 +233,7 @@ export const getMonthlyReport = async (req: Request, res: Response): Promise<voi
             avgCalories: summary.avgCalories,
             highestDay: summary.highestDay,
             macros: summary.macros,
-            goal: user.dailyColorieGoal,
+            goal: user.dailyCalorieGoal,
         });
     } catch (error) {
         console.error("Monthly report error:", error);

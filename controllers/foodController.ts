@@ -1,10 +1,12 @@
 import crypto from "crypto";
 import type { Request, Response } from "express";
+import mongoose from "mongoose";
 import sharp from "sharp";
 import { PutObjectCommand, DeleteObjectCommand } from "@aws-sdk/client-s3";
 import { r2Config } from "../config/r2.js";
 import { analyzeFoodImage } from "../services/openai.js";
 import FoodEntry from "../models/FoodEntry.js";
+import { getUserFoodEntries } from "../services/colories.js";
 
 
 
@@ -161,6 +163,14 @@ export const scanAnalyzeFoodImage = async (req: Request, res: Response) => {
         })
     } catch (error) {
 
+        const message = error instanceof Error ? error.message : String(error)
+        console.error('scanAnalyzeFoodImage error:', message)
+        // upstream AI/vision failures surface as 502, everything else as 500
+        const isUpstreamAiFailure = message.includes('Failed to analyze food image')
+        res.status(isUpstreamAiFailure ? 502 : 500).json({
+            message: isUpstreamAiFailure ? 'Failed to analyze food image' : 'Failed to scan food image',
+            error: message
+        })
     }
 }
 
@@ -168,7 +178,14 @@ export const scanAnalyzeFoodImage = async (req: Request, res: Response) => {
 export const saveFoodEntries = async (req: Request, res: Response): Promise<void> => {
     try {
         const { foodName, calories, protein, fat, carbs, mealType, imageUrl, storageKey } = req.body
-        if (!foodName || !calories === undefined || !imageUrl || !storageKey) {
+        if (
+            !foodName ||
+            calories === undefined || isNaN(Number(calories)) ||
+            protein === undefined || isNaN(Number(protein)) ||
+            carbs === undefined || isNaN(Number(carbs)) ||
+            fat === undefined || isNaN(Number(fat)) ||
+            !imageUrl || !storageKey
+        ) {
             res.status(400).json({ message: 'Missing required fields' })
             return
         }
@@ -195,33 +212,141 @@ export const saveFoodEntries = async (req: Request, res: Response): Promise<void
 
 export const discardFoodEntry = async (req: Request, res: Response): Promise<void> => {
     try {
-        const { storageKey } = req.body
-        if (!storageKey) {
-            res.status(400).json({ message: 'Missing required fields' })
+        const { id } = req.params
+
+        if (!req.user?._id) {
+            res.status(401).json({ message: 'Not authenticated' })
             return
         }
 
-        try {
+        // accept storageKey from either the request body or the query string
+        const storageKey =
+            req.body?.storageKey ||
+            (typeof req.query.storageKey === 'string' ? req.query.storageKey : undefined)
 
+        if (!id) {
+            // no entry id: the image was analyzed but never saved, so only the R2 object exists
+            if (!storageKey) {
+                res.status(400).json({ message: 'storageKey is required when no entry id is provided' })
+                return
+            }
             const deleteCommand = new DeleteObjectCommand({
                 Bucket: r2Config.bucketName,
                 Key: storageKey,
             })
-
             await r2Config.client.send(deleteCommand)
-            await FoodEntry.findByIdAndDelete(req.params.id)
-            res.status(200).json({ message: 'Food entry discarded successfully' })
-
-        } catch (error) {
-            const message = error instanceof Error ? error.message : String(error)
-            console.error('discardFoodEntry error:', message)
-            res.status(500).json({ message: 'Failed to discard food entry', error: message })
-
+            res.status(200).json({ success: true, message: 'Food image discarded successfully' })
+            return
         }
 
+        if (!mongoose.isValidObjectId(id)) {
+            res.status(404).json({ message: 'Food entry not found' })
+            return
+        }
+
+        // the entry must exist and belong to the authenticated user
+        const entry = await FoodEntry.findOne({ _id: id, userId: req.user._id })
+        if (!entry) {
+            res.status(404).json({ message: 'Food entry not found' })
+            return
+        }
+
+        if (storageKey) {
+            const deleteCommand = new DeleteObjectCommand({
+                Bucket: r2Config.bucketName,
+                Key: storageKey,
+            })
+            await r2Config.client.send(deleteCommand)
+        }
+
+        await FoodEntry.deleteOne({ _id: entry._id })
+
+        res.status(200).json({ success: true, message: 'Food entry discarded successfully' })
     } catch (error) {
         const message = error instanceof Error ? error.message : String(error)
         console.error('discardFoodEntry error:', message)
         res.status(500).json({ message: 'Failed to discard food entry', error: message })
+    }
+}
+
+
+export const getFoodEntries = async (req: Request, res: Response): Promise<void> => {
+    try {
+        if (!req.user?._id) {
+            res.status(401).json({ message: 'Not authenticated' })
+            return
+        }
+
+        const { date, limit } = req.query
+
+        let parsedDate: Date | undefined
+        if (typeof date === 'string' && date !== '') {
+            parsedDate = new Date(date)
+            if (isNaN(parsedDate.getTime())) {
+                res.status(400).json({ message: 'Invalid date parameter, expected YYYY-MM-DD' })
+                return
+            }
+        }
+
+        let parsedLimit = 50
+        if (typeof limit === 'string' && limit !== '') {
+            parsedLimit = parseInt(limit, 10)
+            if (isNaN(parsedLimit) || parsedLimit < 1) {
+                res.status(400).json({ message: 'Invalid limit parameter' })
+                return
+            }
+        }
+
+        const { entries, totals } = await getUserFoodEntries(req.user._id, parsedDate, parsedLimit)
+
+        res.status(200).json({
+            success: true,
+            data: {
+                entries,
+                totals: {
+                    calories: totals.calories,
+                    protein: totals.protein,
+                    carbs: totals.carbs,
+                    fat: totals.fat,
+                },
+            },
+        })
+    } catch (error) {
+        const message = error instanceof Error ? error.message : String(error)
+        console.error('getFoodEntries error:', message)
+        res.status(500).json({ message: 'Failed to fetch food entries', error: message })
+    }
+}
+
+
+export const getFoodEntry = async (req: Request, res: Response): Promise<void> => {
+    try {
+        if (!req.user?._id) {
+            res.status(401).json({ message: 'Not authenticated' })
+            return
+        }
+
+        const { id } = req.params
+
+        if (!id || !mongoose.isValidObjectId(id)) {
+            res.status(404).json({ message: 'Food entry not found' })
+            return
+        }
+
+        const entry = await FoodEntry.findOne({ _id: id, userId: req.user._id })
+
+        if (!entry) {
+            res.status(404).json({ message: 'Food entry not found' })
+            return
+        }
+
+        res.status(200).json({
+            success: true,
+            data: { entry },
+        })
+    } catch (error) {
+        const message = error instanceof Error ? error.message : String(error)
+        console.error('getFoodEntry error:', message)
+        res.status(500).json({ message: 'Failed to fetch food entry', error: message })
     }
 }

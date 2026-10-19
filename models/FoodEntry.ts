@@ -65,6 +65,6 @@ const foodEntrySchema = new Schema<IFoodEntry>({
 })
 
 
-foodEntrySchema.index({ user : 1 , timestamp : -1})
+foodEntrySchema.index({ userId : 1 , timestamp : -1})
 
 export default mongoose.model<IFoodEntry>('FoodEntry' , foodEntrySchema)

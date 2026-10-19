@@ -9,7 +9,7 @@ const generateToken = (id: string) => {
 
 export const registerUser = async (req: Request, res: Response) : Promise<void> => {
     try {
-        const { name, email, password , dailyColorieGoal} = req.body;
+        const { name, email, password , dailyCalorieGoal} = req.body;
         if (!name || !email || !password) {
               res.status(400).json({ message: "Please provide all the required fields" })
             return 
@@ -27,7 +27,7 @@ export const registerUser = async (req: Request, res: Response) : Promise<void> 
             name,
             email,
             password,
-            dailyColorieGoal: dailyColorieGoal || 2000
+            dailyCalorieGoal: dailyCalorieGoal || 2000
         })
 
         
@@ -40,7 +40,7 @@ export const registerUser = async (req: Request, res: Response) : Promise<void> 
                 _id: user._id,
                 name:user.name,
                 email:user.email,
-                dailyColorieGoal: user.dailyColorieGoal,
+                dailyCalorieGoal: user.dailyCalorieGoal,
                 onboardingCompleted: user.onboardingCompleted,
                 token:generateToken(user._id.toString())
             }
@@ -81,7 +81,7 @@ export const loginUser = async (req: Request, res: Response) : Promise<void> => 
                 _id: user._id,
                 name:user.name,
                 email:user.email,
-                dailyColorieGoal: user.dailyColorieGoal,
+                dailyCalorieGoal: user.dailyCalorieGoal,
                 onboardingCompleted: user.onboardingCompleted,
                 token:generateToken(user._id.toString())
             }
@@ -124,7 +124,7 @@ export const updateProfile = async (req: Request, res: Response) : Promise<void>
         }
 
         if(dailyCalorieGoal){
-            user.dailyColorieGoal = dailyCalorieGoal
+            user.dailyCalorieGoal = dailyCalorieGoal
         }
 
         if(onboardingCompleted){
@@ -141,7 +141,7 @@ export const updateProfile = async (req: Request, res: Response) : Promise<void>
             _id:user._id,
             name:user.name,
             email:user.email,
-            dailyColorieGoal: user.dailyColorieGoal,
+            dailyCalorieGoal: user.dailyCalorieGoal,
             onboardingCompleted: user.onboardingCompleted,
             token:generateToken(user._id.toString())
         })
